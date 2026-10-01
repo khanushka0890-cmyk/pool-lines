@@ -37,20 +37,22 @@ header {
 .tabs button:hover { color: var(--text); }
 .tabs button.on { color: var(--bg); background: var(--accent); }
 
-main {
-  display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px;
-  padding: 24px; max-width: 1600px; margin: 0 auto;
-}
-@media (max-width: 960px) { main { grid-template-columns: 1fr; padding: 16px; } header { padding: 12px 16px; } }
+main { padding: 20px 24px 40px; max-width: 1800px; margin: 0 auto; }
+@media (max-width: 760px) { main { padding: 12px 16px 32px; } header { padding: 12px 16px; } }
 
 .stage { min-width: 0; }
-#table { width: 100%; height: auto; max-height: calc(100vh - 140px); display: block; touch-action: none; user-select: none; }
+#table { width: 100%; height: auto; max-height: 78vh; display: block; touch-action: none; user-select: none; }
 .meta { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 10px; color: var(--muted); font-size: 13px; }
 .opts { display: flex; gap: 14px; align-items: center; }
 select { background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; font: inherit; }
 
 /* Panel */
-#panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px 18px 20px; align-self: start; }
+#panel {
+  margin-top: 16px; display: grid; gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+#panel .group { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px 18px; min-width: 0; }
+#panel .group > :first-child { margin-top: 0; }
 #panel h2 { margin: 0 0 6px; font-size: 18px; }
 #panel h3 { margin: 18px 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .hint { color: var(--muted); margin: 0 0 14px; }
@@ -144,3 +146,38 @@ input[type=range] { accent-color: var(--accent); }
 .contacts .more { color: var(--muted); font-size: 13px; }
 .restball { fill: rgba(251,250,245,.25); stroke: rgba(251,250,245,.8); stroke-width: .15; stroke-dasharray: .4 .3; }
 .spinbadge .tip { fill: #d8262c; }
+
+/* Systems */
+:root { --sD: #6fb2ff; --sF: #ff6b6b; --sT: #f3ead8; }
+.sD { color: var(--sD); fill: var(--sD); }
+.sF { color: var(--sF); fill: var(--sF); }
+.sT { color: var(--sT); fill: var(--sT); }
+svg text.sD, svg text.sF, svg text.sT { font-size: 2px; font-weight: 700; text-anchor: middle; }
+svg text.sT { fill: rgba(243,234,216,.75); }
+.clabel.sFl { fill: var(--sF); }
+.clabel.sTl { fill: var(--sT); }
+.dpt { fill: var(--sD); }
+.formula { font-size: 30px; font-weight: 700; letter-spacing: .01em; font-variant-numeric: tabular-nums; margin: 4px 0 2px; }
+.formula.muted { font-size: 15px; font-weight: 400; color: var(--muted); }
+.formula-k { display: flex; gap: 18px; font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+.legend { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; font-size: 13.5px; color: var(--muted); }
+.legend b { color: var(--text); }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; background: currentColor; vertical-align: 0; }
+.warn { color: var(--spin); font-size: 14px; }
+.seg { flex-wrap: wrap; }
+.seg button { padding: 7px 10px; }
+#panel h2 + .seg { margin-bottom: 12px; }
+.sixes li.on { color: var(--text); }
+.sixes li.on .k { color: var(--accent); font-weight: 700; }
+.sixes li { color: var(--muted); }
+.sixes em { color: var(--muted); font-size: 12px; }
+.path.family { stroke: rgba(244,200,74,.45); stroke-width: .16; }
+.path.family.first { stroke: rgba(244,200,74,.75); stroke-width: .2; }
+.sightpt .sp { fill: none; stroke: rgba(243,234,216,.5); stroke-width: .15; }
+.picking .sightpt:hover .sp { stroke: var(--accent); }
+.converge .ring { fill: none; stroke: var(--accent); stroke-width: .3; }
+.converge circle:last-child { fill: var(--accent); }
+.ghostball { fill: rgba(251,250,245,.18); stroke: rgba(251,250,245,.5); stroke-width: .1; }
+.aim.target .ring, .aim.target .cross { stroke: var(--sT); }
+svg text.sepnum { fill: rgba(243,234,216,.6); font-size: 2px; font-weight: 700; text-anchor: middle; }
+svg text.sepnum.on { fill: var(--accent); font-size: 2.4px; }
