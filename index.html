@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pool Lines</title>
+  <meta name="description" content="Interactive pool table for diamond systems, spot-on-the-wall banks, reference lines and side spin.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="brand">Pool Lines</div>
+    <nav class="tabs" role="tablist">
+      <button data-tab="diamond" class="on">Diamond system</button>
+      <button data-tab="spot">Spot on the wall</button>
+      <button data-tab="ref">Reference lines</button>
+      <button data-tab="spin">Side spin</button>
+    </nav>
+  </header>
+
+  <main>
+    <section class="stage">
+      <svg id="table" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" aria-label="Pool table"></svg>
+      <div class="meta">
+        <span id="dims"></span>
+        <span class="opts">
+          <select id="size" aria-label="Table size"></select>
+          <label><input type="checkbox" id="numbers" checked> Diamond numbers</label>
+        </span>
+      </div>
+    </section>
+    <aside id="panel"></aside>
+  </main>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
