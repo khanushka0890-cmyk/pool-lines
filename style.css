@@ -115,4 +115,32 @@ input[type=range] { accent-color: var(--accent); }
 .targetpocket { fill: none; stroke: var(--accent); stroke-width: .3; }
 .refstart { fill: var(--accent); }
 .spinbadge .face { fill: #fbfaf5; stroke: rgba(0,0,0,.35); stroke-width: .1; }
-.spinbadge .tip { fill: #2f78ff; }
+
+
+/* English pad */
+.english { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 6px 0 14px; }
+#spinpad { width: 180px; height: 180px; touch-action: none; cursor: crosshair; outline: none; border-radius: 50%; }
+#spinpad:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
+.padball { fill: url(#cueShade); stroke: rgba(0,0,0,.4); stroke-width: .02; }
+.padlimit { fill: none; stroke: rgba(0,0,0,.28); stroke-width: .015; stroke-dasharray: .05 .04; }
+.padaxis { stroke: rgba(0,0,0,.14); stroke-width: .012; }
+.padlbl { fill: var(--muted); font-size: .13px; text-anchor: middle; letter-spacing: .01px; }
+.tipdot { fill: #d8262c; stroke: #fff; stroke-width: .025; filter: drop-shadow(0 .02px .03px rgba(0,0,0,.5)); }
+.englishmeta { display: flex; gap: 12px; align-items: baseline; font-size: 14px; }
+.link { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-size: 13px; cursor: pointer; }
+
+/* Speed bar */
+.speedbar { position: relative; height: 28px; touch-action: none; cursor: pointer; }
+.speedbar .track { position: absolute; left: 0; right: 0; top: 11px; height: 6px; border-radius: 3px;
+  background: linear-gradient(90deg, #2c3a33, #3a4a42); overflow: hidden; }
+.speedbar .fill { height: 100%; background: linear-gradient(90deg, #6fd39a, var(--accent) 55%, var(--spin)); }
+.speedbar .thumb { position: absolute; top: 4px; width: 20px; height: 20px; margin-left: -10px; border-radius: 50%;
+  background: #fbfaf5; box-shadow: 0 1px 4px rgba(0,0,0,.5); cursor: grab; outline: none; }
+.speedbar .thumb:focus-visible { box-shadow: 0 0 0 3px var(--accent); }
+.ticks { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+.outcome { margin: 4px 0 8px; font-weight: 600; }
+.outcome.pk { color: var(--spin); }
+.contacts .more { color: var(--muted); font-size: 13px; }
+.restball { fill: rgba(251,250,245,.25); stroke: rgba(251,250,245,.8); stroke-width: .15; stroke-dasharray: .4 .3; }
+.spinbadge .tip { fill: #d8262c; }

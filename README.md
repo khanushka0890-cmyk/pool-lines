@@ -8,7 +8,7 @@ Tabs:
 - **Diamond system**: drag the cue ball and the first-rail aim point; see where the ball lands on every rail, in diamonds.
 - **Spot on the wall**: mirror a target (object ball or pocket) behind one or two rails and bank straight at it.
 - **Reference lines**: tap diamond → diamond to see the line the ball follows through the next rails.
-- **Side spin**: the same shot with left/right english and speed (simplified cushion model).
+- **Spin & speed**: drag the cue-tip dot on the cue ball (left/right, follow/draw) and the speed handle; the shot is physically simulated until the ball drops or stops (`js/physics.js`).
 
 No build step. Plain HTML + ES modules.
 

@@ -3,6 +3,7 @@ import {
   makeTable, pockets, diamonds, railPoint, trackPoint, trace, mirror,
   clampToCloth, snapToTrack, fmtDiamond,
 } from './geometry.js';
+import { simulate, MAX_OFFSET, MPH } from './physics.js';
 
 const svg = document.getElementById('table');
 const panel = document.getElementById('panel');
@@ -19,8 +20,9 @@ const state = {
   obj: { x: 38, y: 34 },
   aim: { rail: 'top', n: 3 },
   rails: 3,
-  english: 0,
-  speed: 3,
+  side: 0,     // tip offset, fraction of R: -0.5 (left) .. 0.5 (right)
+  vert: 0,     // tip offset, fraction of R: -0.5 (draw) .. 0.5 (follow)
+  mph: 4,
   ghost: true,
   spotTarget: 'ball',     // 'ball' | pocket index
   spotRails: ['top'],
@@ -132,14 +134,21 @@ function renderSpin(g) {
   const t = state.t;
   const a = aimPoint();
   const dir = { x: a.x - state.cue.x, y: a.y - state.cue.y };
+  const speed = state.mph * MPH;
   let ghost = null;
-  if (state.ghost && state.english !== 0) {
-    ghost = trace(t, state.cue, dir, state.rails);
+  const spun = state.side !== 0 || state.vert !== 0;
+  if (state.ghost && spun) {
+    ghost = simulate(t, state.cue, dir, { speed, side: 0, vert: 0 });
     drawPath(g, ghost.points, 'ghost');
   }
-  const res = trace(t, state.cue, dir, state.rails, { english: state.english, speed: state.speed });
-  drawPath(g, res.points, state.english ? 'spin' : 'main');
-  drawContacts(g, res.points);
+  const res = simulate(t, state.cue, dir, { speed, side: state.side, vert: state.vert });
+  drawPath(g, res.points, spun ? 'spin' : 'main');
+  drawContacts(g, res.contacts.slice(0, 10));
+  if (!res.pocket) {
+    el('circle', { cx: res.end.x, cy: res.end.y, r: BALL_R, class: 'restball' }, g);
+  } else {
+    el('circle', { cx: res.pocket.x, cy: res.pocket.y, r: 1.6, class: 'targetpocket' }, g);
+  }
   drawAim(g, a);
   drawBall(g, state.cue, 'cue', 'cue');
   drawSpinDot(g);
@@ -147,11 +156,12 @@ function renderSpin(g) {
 }
 
 function drawSpinDot(g) {
-  // little cue-tip indicator next to the cue ball
-  const c = { x: state.cue.x, y: state.cue.y - BALL_R * 3.2 };
+  // Cue-tip contact point shown on a small ball above the cue ball
+  const c = { x: state.cue.x, y: state.cue.y - BALL_R * 3.4 };
+  const r = 1.5;
   const w = el('g', { class: 'spinbadge' }, g);
-  el('circle', { cx: c.x, cy: c.y, r: 1.4, class: 'face' }, w);
-  el('circle', { cx: c.x + (state.english / 3) * 1.0, cy: c.y, r: 0.32, class: 'tip' }, w);
+  el('circle', { cx: c.x, cy: c.y, r, class: 'face' }, w);
+  el('circle', { cx: c.x + state.side * r, cy: c.y - state.vert * r, r: 0.32, class: 'tip' }, w);
 }
 
 function drawAim(g, a) {
@@ -277,8 +287,93 @@ function railsControl(key, max = 5) {
       `<button data-set="${key}" data-val="${n}" class="${state[key] === n ? 'on' : ''}">${n}</button>`).join('')}</div></label>`;
 }
 
+const POCKET_NAMES = ['top-left corner', 'top side', 'top-right corner', 'bottom-left corner', 'bottom side', 'bottom-right corner'];
+const MPH_MIN = 1, MPH_MAX = 15;
+
+function tipsText() {
+  const tips = (v) => Math.round((Math.abs(v) / MAX_OFFSET) * 3 * 4) / 4; // 3 tips = miscue limit
+  const parts = [];
+  const s = tips(state.side), v = tips(state.vert);
+  if (s) parts.push(`${s} tip${s !== 1 ? 's' : ''} ${state.side > 0 ? 'right' : 'left'}`);
+  if (v) parts.push(`${v} tip${v !== 1 ? 's' : ''} ${state.vert > 0 ? 'follow' : 'draw'}`);
+  return parts.length ? parts.join(' · ') : 'Center ball';
+}
+
+function speedWord(mph) {
+  return mph < 2.5 ? 'Soft' : mph < 5 ? 'Medium' : mph < 8 ? 'Firm' : mph < 12 ? 'Hard' : 'Power';
+}
+
+function buildSpinPanel() {
+  panel.innerHTML = `
+    <h2>Spin &amp; speed</h2>
+    <p class="hint">Drag the <b>red dot</b> to where the cue tip hits the ball. The path is simulated until the ball drops or stops. Dashed = same speed, center ball.</p>
+    <div class="english">
+      <svg id="spinpad" viewBox="-1.32 -1.32 2.64 2.64" role="slider" tabindex="0" aria-label="Cue tip position">
+        <defs>
+          <radialGradient id="cueShade" cx="35%" cy="30%" r="75%">
+            <stop offset="0" stop-color="#ffffff"/><stop offset=".7" stop-color="#ecebe4"/><stop offset="1" stop-color="#c9c7bd"/>
+          </radialGradient>
+        </defs>
+        <circle r="1" class="padball"/>
+        <circle r="${MAX_OFFSET}" class="padlimit"/>
+        <line x1="-1" y1="0" x2="1" y2="0" class="padaxis"/>
+        <line x1="0" y1="-1" x2="0" y2="1" class="padaxis"/>
+        <text y="-1.1" class="padlbl">Follow</text>
+        <text y="1.24" class="padlbl">Draw</text>
+        <text x="-1.17" y="0.04" class="padlbl" transform="rotate(-90 -1.17 0)">Left</text>
+        <text x="1.17" y="0.04" class="padlbl" transform="rotate(90 1.17 0)">Right</text>
+        <circle id="tipdot" r=".11" class="tipdot"/>
+      </svg>
+      <div class="englishmeta"><b id="tipsText"></b><button class="link" id="centerBtn">Center</button></div>
+    </div>
+
+    <div class="field">
+      <span>Speed <b id="speedText"></b></span>
+      <div class="speedbar" id="speedbar">
+        <div class="track"><div class="fill" id="speedFill"></div></div>
+        <div class="thumb" id="speedThumb" role="slider" tabindex="0" aria-label="Shot speed"
+             aria-valuemin="${MPH_MIN}" aria-valuemax="${MPH_MAX}"></div>
+      </div>
+      <div class="ticks"><span>Soft</span><span>Medium</span><span>Firm</span><span>Hard</span><span>Power</span></div>
+    </div>
+
+    <label class="check"><input type="checkbox" data-toggle="ghost" ${state.ghost ? 'checked' : ''}> Show center-ball path</label>
+    <h3>What happens</h3>
+    <div id="spinResult"></div>
+    <p class="fine">Physics: sliding and rolling cloth friction, follow/draw wearing off into natural roll, cushion rebound with friction and side spin, squirt, spin decay. No object balls, level cue, typical cloth. Calibrate later against your table.</p>`;
+  panel.dataset.tab = 'spin';
+}
+
+function updateSpinPanel(info) {
+  const dot = document.getElementById('tipdot');
+  dot.setAttribute('cx', state.side); dot.setAttribute('cy', -state.vert);
+  document.getElementById('tipsText').textContent = tipsText();
+  const f = (state.mph - MPH_MIN) / (MPH_MAX - MPH_MIN);
+  document.getElementById('speedFill').style.width = `${f * 100}%`;
+  const th = document.getElementById('speedThumb');
+  th.style.left = `${f * 100}%`;
+  th.setAttribute('aria-valuenow', state.mph.toFixed(1));
+  document.getElementById('speedText').textContent = `${speedWord(state.mph)} · ${state.mph.toFixed(1)} mph`;
+
+  const r = info.res;
+  const rows = r.contacts.slice(0, 12).map((c, i) =>
+    `<li><span class="k">Rail ${i + 1}</span> ${RAIL_NAMES[c.rail]} <b>${fmtDiamond(c.diamond)}</b></li>`);
+  if (r.contacts.length > 12) rows.push(`<li class="more">+ ${r.contacts.length - 12} more rails</li>`);
+  const pi = r.pocket ? pockets(state.t).findIndex((k) => k.x === r.pocket.x && k.y === r.pocket.y) : -1;
+  const outcome = r.pocket
+    ? `<div class="outcome pk">Drops in the ${POCKET_NAMES[pi]} pocket after ${r.rails} rail${r.rails !== 1 ? 's' : ''}</div>`
+    : `<div class="outcome">Stops after ${r.rails} rail${r.rails !== 1 ? 's' : ''} · ${r.time.toFixed(1)} s</div>`;
+  document.getElementById('spinResult').innerHTML = `${outcome}<ol class="contacts">${rows.join('')}</ol>`;
+}
+
 function renderPanel(info) {
   const tab = state.tab;
+  if (tab === 'spin') {
+    if (panel.dataset.tab !== 'spin') buildSpinPanel();
+    updateSpinPanel(info);
+    return;
+  }
+  panel.dataset.tab = tab;
   let html = '';
   if (tab === 'diamond') {
     html = `
@@ -288,21 +383,6 @@ function renderPanel(info) {
       <h3>Where it lands</h3>
       ${contactList(info.points)}
       <div class="todo"><b>Next:</b> system overlays (Corner-5, Plus system, 1-rail mirror numbers) — tell me which numbering you use.</div>`;
-  } else if (tab === 'spin') {
-    const e = state.english;
-    const word = e === 0 ? 'center ball' : `${Math.abs(e)} tip${Math.abs(e) !== 1 ? 's' : ''} ${e > 0 ? 'right' : 'left'}`;
-    html = `
-      <h2>Side spin</h2>
-      <p class="hint">Same shot, with english. The dashed line is the no-spin path for comparison.</p>
-      <label class="field"><span>English <b>${word}</b></span>
-        <input type="range" min="-3" max="3" step="0.5" value="${e}" data-input="english"></label>
-      <label class="field"><span>Speed <b>${['', 'soft', 'medium-soft', 'medium', 'firm', 'hard'][state.speed]}</b></span>
-        <input type="range" min="1" max="5" step="1" value="${state.speed}" data-input="speed"></label>
-      ${railsControl('rails')}
-      <label class="check"><input type="checkbox" data-toggle="ghost" ${state.ghost ? 'checked' : ''}> Show no-spin path</label>
-      <h3>Where it lands</h3>
-      ${contactList(info.res.points)}
-      <p class="fine">Simplified cushion model: running english lengthens the rebound angle, reverse shortens it, and each rail takes about half the spin off. Tune later with real table data.</p>`;
   } else if (tab === 'spot') {
     const t = state.t;
     const pk = pockets(t);
@@ -411,7 +491,59 @@ const endDrag = () => { drag = null; };
 svg.addEventListener('pointerup', endDrag);
 svg.addEventListener('pointercancel', endDrag);
 
+// English pad + speed bar (built once per visit to the spin tab, so drags survive re-renders)
+let panelDrag = null;
+
+function padSet(e) {
+  const pad = document.getElementById('spinpad');
+  const pt = pad.createSVGPoint();
+  pt.x = e.clientX; pt.y = e.clientY;
+  const p = pt.matrixTransform(pad.getScreenCTM().inverse());
+  let x = p.x, y = -p.y;
+  const L = Math.hypot(x, y);
+  if (L > MAX_OFFSET) { x *= MAX_OFFSET / L; y *= MAX_OFFSET / L; }
+  const q = MAX_OFFSET / 12; // quarter-tip steps
+  state.side = Math.round(x / q) * q || 0;
+  state.vert = Math.round(y / q) * q || 0;
+  render();
+}
+
+function speedSet(e) {
+  const r = document.querySelector('#speedbar .track').getBoundingClientRect();
+  const f = Math.min(Math.max((e.clientX - r.left) / r.width, 0), 1);
+  state.mph = Math.round((MPH_MIN + f * (MPH_MAX - MPH_MIN)) * 10) / 10;
+  render();
+}
+
+panel.addEventListener('pointerdown', (e) => {
+  if (e.target.closest('#spinpad')) panelDrag = padSet;
+  else if (e.target.closest('#speedbar')) panelDrag = speedSet;
+  else return;
+  e.target.setPointerCapture(e.pointerId);
+  e.preventDefault();
+  panelDrag(e);
+});
+panel.addEventListener('pointermove', (e) => { if (panelDrag) panelDrag(e); });
+panel.addEventListener('pointerup', () => { panelDrag = null; });
+panel.addEventListener('pointercancel', () => { panelDrag = null; });
+
+panel.addEventListener('keydown', (e) => {
+  const step = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key];
+  if (!step) return;
+  if (e.target.id === 'spinpad') {
+    const q = MAX_OFFSET / 12;
+    let x = state.side + step[0] * q, y = state.vert + step[1] * q;
+    if (Math.hypot(x, y) <= MAX_OFFSET + 1e-9) { state.side = x; state.vert = y; }
+  } else if (e.target.id === 'speedThumb') {
+    const d = step[0] || step[1];
+    state.mph = Math.min(MPH_MAX, Math.max(MPH_MIN, Math.round((state.mph + d * 0.5) * 10) / 10));
+  } else return;
+  e.preventDefault();
+  render();
+});
+
 panel.addEventListener('click', (e) => {
+  if (e.target.id === 'centerBtn') { state.side = 0; state.vert = 0; render(); return; }
   const b = e.target.closest('[data-set]');
   if (!b) return;
   state[b.dataset.set] = +b.dataset.val;

@@ -82,7 +82,7 @@ export function fmtDiamond(v) {
 
 const INWARD = { top: { x: 0, y: -1 }, bottom: { x: 0, y: 1 }, left: { x: -1, y: 0 }, right: { x: 1, y: 0 } };
 
-function pocketedAt(t, rail, p) {
+export function pocketedAt(t, rail, p) {
   const along = (rail === 'top' || rail === 'bottom') ? p.x : p.y;
   const len = (rail === 'top' || rail === 'bottom') ? t.w : t.h;
   if (along < CORNER_ZONE || along > len - CORNER_ZONE) return true;
@@ -90,7 +90,7 @@ function pocketedAt(t, rail, p) {
   return false;
 }
 
-function nearestPocket(t, p) {
+export function nearestPocket(t, p) {
   let best = null, bd = Infinity;
   for (const k of pockets(t)) {
     const d = Math.hypot(k.x - p.x, k.y - p.y);
